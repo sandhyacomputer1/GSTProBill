@@ -11,6 +11,7 @@ import androidx.fragment.app.Fragment;
 import com.example.gstprobill.Fragment.CustomerFragment;
 import com.example.gstprobill.Fragment.HomeFragment;
 import com.example.gstprobill.Fragment.InvoiceBillingFragment;
+import com.example.gstprobill.Fragment.ProductFragment;
 import com.example.gstprobill.Fragment.SettingsFragment;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.navigation.NavigationView;
@@ -18,7 +19,7 @@ import com.google.android.material.navigation.NavigationView;
 public class MainActivity extends AppCompatActivity {
 
     private DrawerLayout drawerLayout;
-    private boolean isNavigationUpdating = false;
+    private boolean isNavigationUpdating = false; // Prevent recursion
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -39,9 +40,15 @@ public class MainActivity extends AppCompatActivity {
 
         NavigationView navigationView = findViewById(R.id.navigation_view);
         navigationView.setNavigationItemSelectedListener(item -> {
-            drawerLayout.closeDrawer(GravityCompat.START);
             if (isNavigationUpdating) return false;
-            return handleNavigationSelection(item.getItemId());
+
+            boolean handled = handleNavigationSelection(item.getItemId());
+
+            if (handled) {
+                drawerLayout.closeDrawer(GravityCompat.START); // Close *after* handling
+                return true;
+            }
+            return false;
         });
 
         BottomNavigationView bottomNav = findViewById(R.id.bottom_navigation);
@@ -50,12 +57,30 @@ public class MainActivity extends AppCompatActivity {
             return handleNavigationSelection(item.getItemId());
         });
 
-        // Load default fragment if first launch
         if (savedInstanceState == null) {
             loadFragment(new HomeFragment());
             syncNavigationSelection(R.id.nav_home);
         }
     }
+
+//    private boolean handleNavigationSelection(int itemId) {
+//        Fragment selectedFragment;
+//        if (itemId == R.id.nav_home) {
+//            selectedFragment = new HomeFragment();
+//        } else if (itemId == R.id.nav_invoice) {
+//            selectedFragment = new InvoiceBillingFragment();
+//        } else if (itemId == R.id.nav_customer) {
+//            selectedFragment = new CustomerFragment();
+//        } else if (itemId == R.id.nav_settings) {
+//            selectedFragment = new SettingsFragment();
+//        } else {
+//            return false;
+//        }
+//        loadFragment(selectedFragment);
+//        syncNavigationSelection(itemId);
+//        return true;
+//    }
+
 
     private boolean handleNavigationSelection(int itemId) {
         Fragment selectedFragment;
@@ -68,6 +93,8 @@ public class MainActivity extends AppCompatActivity {
             selectedFragment = new CustomerFragment();
         } else if (itemId == R.id.nav_settings) {
             selectedFragment = new SettingsFragment();
+        } else if (itemId == R.id.nav_product) {
+            selectedFragment = new ProductFragment();
         } else {
             return false;
         }
@@ -76,6 +103,8 @@ public class MainActivity extends AppCompatActivity {
         syncNavigationSelection(itemId);
         return true;
     }
+
+
 
     private void loadFragment(Fragment fragment) {
         getSupportFragmentManager()
@@ -86,10 +115,10 @@ public class MainActivity extends AppCompatActivity {
 
     private void syncNavigationSelection(int itemId) {
         isNavigationUpdating = true;
+
         BottomNavigationView bottomNav = findViewById(R.id.bottom_navigation);
         NavigationView navigationView = findViewById(R.id.navigation_view);
 
-        // Update only if different to avoid recursion
         if (bottomNav.getSelectedItemId() != itemId) {
             bottomNav.setSelectedItemId(itemId);
         }
